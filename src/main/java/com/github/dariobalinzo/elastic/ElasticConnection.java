@@ -16,6 +16,7 @@
 
 package com.github.dariobalinzo.elastic;
 
+import org.apache.http.Header;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
 import org.apache.http.auth.UsernamePasswordCredentials;
@@ -40,7 +41,6 @@ import java.util.Objects;
 
 public class ElasticConnection {
     public final static Logger logger = LoggerFactory.getLogger(ElasticConnection.class);
-
     private RestHighLevelClient client;
     private final long connectionRetryBackoff;
     private final int maxConnectionAttempts;
@@ -49,11 +49,13 @@ public class ElasticConnection {
     private final int port;
     private final SSLContext sslContext;
     private final CredentialsProvider credentialsProvider;
+    private Header[] defaultHeaders;
 
     ElasticConnection(ElasticConnectionBuilder builder) {
         hosts = builder.hosts;
         protocol = builder.protocol;
         port = builder.port;
+        defaultHeaders = builder.defaultHeaders;
 
         String user = builder.user;
         String pwd = builder.pwd;
@@ -84,6 +86,7 @@ public class ElasticConnection {
 
         client = new RestHighLevelClient(
                 RestClient.builder(hostList)
+                        .setDefaultHeaders(defaultHeaders)
                         .setHttpClientConfigCallback(
                                 httpClientBuilder -> {
                                     if (credentialsProvider != null) {

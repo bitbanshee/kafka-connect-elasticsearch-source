@@ -26,7 +26,6 @@ import java.util.Collections;
 import java.util.Map;
 
 public class ElasticSourceConnectorConfig extends AbstractConfig {
-
     public final static String ES_HOST_CONF = "es.host";
     private final static String ES_HOST_DOC = "ElasticSearch host. " +
             "Optionally it is possible to specify many hosts " +
@@ -41,6 +40,10 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     public final static String ES_PORT_CONF = "es.port";
     private final static String ES_PORT_DOC = "ElasticSearch port";
     private final static String ES_PORT_DISPLAY = "ElasticSearch port";
+
+    public final static String ES_HEADERS_CONF = "es.headers";
+    private final static String ES_HEADERS_DOC = "List of default headers to forward to elasticsearch in each request. ";
+    private final static String ES_HEADERS_DISPLAY = "Elastic default headers";
 
     public final static String ES_USER_CONF = "es.user";
     private final static String ES_USER_DOC = "Elasticsearch username";
@@ -192,6 +195,16 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 Width.LONG,
                 ES_PORT_DISPLAY,
                 Collections.singletonList(INDEX_PREFIX_CONFIG)
+        ).define(
+                ES_HEADERS_CONF,
+                Type.LIST,
+                null,
+                Importance.LOW,
+                ES_HEADERS_DOC,
+                DATABASE_GROUP,
+                ++orderInGroup,
+                Width.LONG,
+                ES_HEADERS_DISPLAY
         ).define(
                 ES_USER_CONF,
                 Type.STRING,

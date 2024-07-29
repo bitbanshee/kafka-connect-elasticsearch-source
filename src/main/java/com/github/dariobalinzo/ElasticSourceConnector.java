@@ -21,6 +21,8 @@ import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.elastic.ElasticIndexMonitorThread;
 import com.github.dariobalinzo.task.ElasticSourceTask;
+import org.apache.http.Header;
+import org.apache.http.message.BasicHeader;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.connector.Task;
@@ -62,6 +64,17 @@ public class ElasticSourceConnector extends SourceConnector {
 
         //using rest config all the parameters are strings
         int esPort = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.ES_PORT_CONF));
+        
+        Header[] defaultHeaders = Optional
+                .ofNullable(
+                    config.getList(ElasticSourceConnectorConfig.ES_HEADERS_CONF)
+                )
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(s -> s.split(":"))
+                .filter(pair -> pair.length > 1)
+                .map(pair -> new BasicHeader(pair[0].trim(), pair[1].trim()))
+                .toArray(Header[]::new);
 
         String esUser = config.getString(ElasticSourceConnectorConfig.ES_USER_CONF);
         String esPwd = config.getString(ElasticSourceConnectorConfig.ES_PWD_CONF);
@@ -76,7 +89,8 @@ public class ElasticSourceConnector extends SourceConnector {
         ElasticConnectionBuilder connectionBuilder = new ElasticConnectionBuilder(esHost, esPort)
                 .withProtocol(esScheme)
                 .withMaxAttempts(maxConnectionAttempts)
-                .withBackoff(connectionRetryBackoff);
+                .withBackoff(connectionRetryBackoff)
+                .withDefaultHeaders(defaultHeaders);
 
         String truststore = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_CONF);
         String truststorePass = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_PWD_CONF);

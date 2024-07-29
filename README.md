@@ -36,6 +36,39 @@ You can also compile and running both unit and integration tests (docker is mand
 mvn clean package
 ```
 
+### Using dind
+
+First, run a [dind](https://github.com/docker-library/docs/tree/master/docker) container:
+
+```bash
+docker run --privileged \
+  --name dind \
+  --rm \
+  -it \
+  -v $PWD:/app \
+  -v ~/.m2:/root/.m2 \
+  -w /app docker:dind
+```
+
+Connect to dind:
+
+```bash
+docker exec -it dind sh
+```
+
+Compile using a mvn container:
+
+```bash
+docker run --rm \
+  -it -v $PWD:/app \
+  -v ~/.m2:/root/.m2 \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -w /app \
+  --network host \
+  maven \
+  mvn package
+```
+
 Copy the jar with dependencies from the target folder into connect classpath (
 e.g ``/usr/share/java/kafka-connect-elasticsearch`` ) or set ``plugin.path`` parameter appropriately.
 

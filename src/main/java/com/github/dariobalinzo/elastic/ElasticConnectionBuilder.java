@@ -16,7 +16,13 @@
 
 package com.github.dariobalinzo.elastic;
 
+import org.apache.http.Header;
+
+import java.util.Objects;
+
 public class ElasticConnectionBuilder {
+    static final Header[] EMPTY_HEADERS = new Header[0];
+
     final String hosts;
     final int port;
 
@@ -25,6 +31,7 @@ public class ElasticConnectionBuilder {
     long connectionRetryBackoff = 1_000;
     String user;
     String pwd;
+    Header[] defaultHeaders = EMPTY_HEADERS;
 
     String trustStorePath;
     String trustStorePassword;
@@ -48,6 +55,15 @@ public class ElasticConnectionBuilder {
 
     public ElasticConnectionBuilder withPassword(String password) {
         this.pwd = password;
+        return this;
+    }
+
+    public ElasticConnectionBuilder withDefaultHeaders(Header[] defaultHeaders) {
+        Objects.requireNonNull(defaultHeaders, "defaultHeaders must not be null");
+        for (Header defaultHeader : defaultHeaders) {
+            Objects.requireNonNull(defaultHeader, "default header must not be null");
+        }
+        this.defaultHeaders = defaultHeaders;
         return this;
     }
 

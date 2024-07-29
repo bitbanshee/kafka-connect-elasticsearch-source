@@ -115,8 +115,10 @@ public class ElasticSourceConnector extends SourceConnector {
 
         elasticRepository = new ElasticRepository(elasticConnection);
 
-        indexMonitorThread = new ElasticIndexMonitorThread(context, POLL_MILISSECONDS, elasticRepository, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG));
-        indexMonitorThread.start();
+        if (configProperties.containsKey(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG)) {
+            indexMonitorThread = new ElasticIndexMonitorThread(context, POLL_MILISSECONDS, elasticRepository, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG));
+            indexMonitorThread.start();
+        }
     }
 
     @Override
@@ -131,9 +133,11 @@ public class ElasticSourceConnector extends SourceConnector {
             String indicesNames = configProperties.get(ElasticSourceConnectorConfig.INDEX_NAMES_CONFIG);
             String[] indicesList = indicesNames.split(",");
             return generateTaskFromFixedList(Arrays.asList(indicesList), maxTasks);
-        } else {
+        }
+        if (configProperties.containsKey(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG)) {
             return findTaskFromIndexPrefix(maxTasks);
         }
+        return new ArrayList<>(0);
     }
 
     private List<Map<String, String>> generateTaskFromFixedList(List<String> indicesList, int maxTasks) {
@@ -162,11 +166,13 @@ public class ElasticSourceConnector extends SourceConnector {
     @Override
     public void stop() {
         logger.info("stopping elastic source");
-        indexMonitorThread.shutdown();
-        try {
-            indexMonitorThread.join(MAX_TIMEOUT);
-        } catch (InterruptedException e) {
-        // Ignore, shouldn't be interrupted
+        if (indexMonitorThread != null) {
+            indexMonitorThread.shutdown();
+            try {
+                indexMonitorThread.join(MAX_TIMEOUT);
+            } catch (InterruptedException e) {
+            // Ignore, shouldn't be interrupted
+            }
         }
         elasticConnection.closeQuietly();
     }

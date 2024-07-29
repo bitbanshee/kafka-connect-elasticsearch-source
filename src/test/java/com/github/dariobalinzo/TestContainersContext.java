@@ -124,6 +124,7 @@ public class TestContainersContext {
         HttpHost httpHost = HttpHost.create(container.getHttpHostAddress());
         Map<String, String> conf = new HashMap<>();
         conf.put(ElasticSourceTaskConfig.INDICES_CONFIG, TEST_INDEX);
+        conf.put(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG, TEST_INDEX);
         conf.put(ElasticSourceConnectorConfig.TOPIC_PREFIX_CONFIG, "topic");
         conf.put(ElasticSourceConnectorConfig.INCREMENTING_FIELD_NAME_CONFIG, CURSOR_FIELD);
         conf.put(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG, String.valueOf(10));

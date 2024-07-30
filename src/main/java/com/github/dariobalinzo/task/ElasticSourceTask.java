@@ -29,6 +29,8 @@ import com.github.dariobalinzo.filter.DocumentFilter;
 import com.github.dariobalinzo.filter.JsonCastFilter;
 import com.github.dariobalinzo.filter.WhitelistFilter;
 import com.github.dariobalinzo.schema.*;
+import org.apache.http.Header;
+import org.apache.http.message.BasicHeader;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.Struct;
@@ -149,6 +151,16 @@ public class ElasticSourceTask extends SourceTask {
         String esScheme = config.getString(ElasticSourceConnectorConfig.ES_SCHEME_CONF);
         String esHost = config.getString(ElasticSourceConnectorConfig.ES_HOST_CONF);
         int esPort = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.ES_PORT_CONF));
+        Header[] defaultHeaders = Optional
+                .ofNullable(
+                    config.getList(ElasticSourceConnectorConfig.ES_HEADERS_CONF)
+                )
+                .orElse(Collections.emptyList())
+                .stream()
+                .map(s -> s.split(":"))
+                .filter(pair -> pair.length > 1)
+                .map(pair -> new BasicHeader(pair[0].trim(), pair[1].trim()))
+                .toArray(Header[]::new);
 
         String esUser = config.getString(ElasticSourceConnectorConfig.ES_USER_CONF);
         String esPwd = config.getString(ElasticSourceConnectorConfig.ES_PWD_CONF);
@@ -164,7 +176,8 @@ public class ElasticSourceTask extends SourceTask {
         ElasticConnectionBuilder connectionBuilder = new ElasticConnectionBuilder(esHost, esPort)
                 .withProtocol(esScheme)
                 .withMaxAttempts(maxConnectionAttempts)
-                .withBackoff(connectionRetryBackoff);
+                .withBackoff(connectionRetryBackoff)
+                .withDefaultHeaders(defaultHeaders);
 
         String truststore = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_CONF);
         String truststorePass = config.getString(ElasticSourceConnectorConfig.ES_TRUSTSTORE_PWD_CONF);

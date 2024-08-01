@@ -23,7 +23,10 @@ import org.apache.kafka.common.config.ConfigDef.Type;
 import org.apache.kafka.common.config.ConfigDef.Width;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ElasticSourceConnectorConfig extends AbstractConfig {
     public final static String ES_HOST_CONF = "es.host";
@@ -42,8 +45,8 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private final static String ES_PORT_DISPLAY = "ElasticSearch port";
 
     public final static String ES_HEADERS_CONF = "es.headers";
-    private final static String ES_HEADERS_DOC = "List of default headers to forward to elasticsearch in each request. ";
-    private final static String ES_HEADERS_DISPLAY = "Elastic default headers";
+    private final static String ES_HEADERS_DOC = "List of default headers to be carried to Elasticsearch by each request";
+    private final static String ES_HEADERS_DISPLAY = "Elasticsearch default headers";
 
     public final static String ES_USER_CONF = "es.user";
     private final static String ES_USER_DOC = "Elasticsearch username";
@@ -132,19 +135,17 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
     private static final String MODE_DOC = "";
     private static final String MODE_DISPLAY = "Index Incrementing field";
 
-    public static final String INDICES_CONFIG = "es.indices";
+    public static final String VALUE_FILTERS_WHITELIST_CONFIG = "value.filters.whitelist";
+    private static final String VALUE_FILTERS_WHITELIST_DOC = "Whitelist filter for fields (e.g. order.qty;order.price;status)";
+    private static final String VALUE_FILTERS_WHITELIST_DISPLAY = "Fields whitelist";
 
-    public static final String FIELDS_WHITELIST_CONFIG = "filters.whitelist";
-    private static final String FIELDS_WHITELIST_DOC = "Whitelist filter for fields (e.g. order.qty;order.price;status )";
-    private static final String FIELDS_WHITELIST_DISPLAY = "Fields whitelist";
+    public static final String VALUE_FILTERS_BLACKLIST_CONFIG = "value.filters.blacklist";
+    private static final String VALUE_FILTERS_BLACKLIST_DOC = "Blacklist filter for fields (e.g. order.qty;order.price;status)";
+    private static final String VALUE_FILTERS_BLACKLIST_DISPLAY = "Fields blacklist";
 
-    public static final String FIELDS_BLACKLIST_CONFIG = "filters.blacklist";
-    private static final String FIELDS_BLACKLIST_DOC = "Blacklist filter for fields (e.g. order.qty;order.price;status )";
-    private static final String FIELDS_BLACKLIST_DISPLAY = "Fields blacklist";
-
-    public static final String FIELDS_JSON_CAST_CONFIG = "filters.json_cast";
-    private static final String FIELDS_JSON_CAST_DOC = "Cast to json string instead of parsing nested objects (e.g. order.qty;order.price;status )";
-    private static final String FIELDS_JSON_CAST_DISPLAY = "Cast to json string";
+    public static final String VALUE_FILTERS_JSON_CAST_CONFIG = "value.filters.json_cast";
+    private static final String VALUE_FILTERS_JSON_CAST_DOC = "Cast to json string instead of parsing nested objects";
+    private static final String VALUE_FILTERS_JSON_CAST_DISPLAY = "Cast to json string";
 
     public static final String CONNECTOR_FIELDNAME_CONVERTER_CONFIG = "fieldname_converter";
     public static final String CONNECTOR_FIELDNAME_CONVERTER_DOC = "Determine which name converter should be used for document fields: avro converter as standard";
@@ -306,35 +307,35 @@ public class ElasticSourceConnectorConfig extends AbstractConfig {
                 Width.LONG,
                 INDEX_NAMES_DISPLAY
         ).define(
-                FIELDS_WHITELIST_CONFIG,
+                VALUE_FILTERS_WHITELIST_CONFIG,
                 Type.STRING,
                 null,
                 Importance.MEDIUM,
-                FIELDS_WHITELIST_DOC,
+                VALUE_FILTERS_WHITELIST_DOC,
                 CONNECTOR_GROUP,
                 ++orderInGroup,
                 Width.MEDIUM,
-                FIELDS_WHITELIST_DISPLAY
+                VALUE_FILTERS_WHITELIST_DISPLAY
         ).define(
-                FIELDS_BLACKLIST_CONFIG,
+                VALUE_FILTERS_BLACKLIST_CONFIG,
                 Type.STRING,
                 null,
                 Importance.MEDIUM,
-                FIELDS_BLACKLIST_DOC,
+                VALUE_FILTERS_BLACKLIST_DOC,
                 CONNECTOR_GROUP,
                 ++orderInGroup,
                 Width.MEDIUM,
-                FIELDS_BLACKLIST_DISPLAY
+                VALUE_FILTERS_BLACKLIST_DISPLAY
         ).define(
-                FIELDS_JSON_CAST_CONFIG,
+                VALUE_FILTERS_JSON_CAST_CONFIG,
                 Type.STRING,
                 null,
                 Importance.MEDIUM,
-                FIELDS_WHITELIST_DOC,
+                VALUE_FILTERS_WHITELIST_DOC,
                 CONNECTOR_GROUP,
                 ++orderInGroup,
                 Width.MEDIUM,
-                FIELDS_JSON_CAST_DISPLAY
+                VALUE_FILTERS_JSON_CAST_DISPLAY
         );
     }
 

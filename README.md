@@ -135,6 +135,13 @@ ElasticSearch scheme (http/https)
 * Importance: medium
 * Default: ``http``
 
+``es.headers``
+List of default headers to be carried to Elasticsearch by each request.
+
+* Type: string
+* Importance: medium
+* Default: null
+
 ``es.user``
 Elasticsearch username
 
@@ -242,7 +249,7 @@ Prefix to prepend to index names to generate the name of the Kafka topic to publ
 * Type: string
 * Importance: high
 
-``filters.whitelist``
+``value.filters.whitelist``
 Whitelist filter for extracting a subset of fields from elastic-search json documents. The whitelist filter supports
 nested fields. To provide multiple fields use `;` as separator
 (e.g. `customer;order.qty;order.price`).
@@ -251,7 +258,7 @@ nested fields. To provide multiple fields use `;` as separator
 * Importance: medium
 * Default: null
 
-``filters.blacklist``
+``value.filters.blacklist``
 Blacklist filter for extracting a subset of fields from elastic-search json documents. The blacklist filter supports
 nested fields. To provide multiple fields use `;` as separator
 (e.g. `customer;order.qty;order.price`).
@@ -260,7 +267,7 @@ nested fields. To provide multiple fields use `;` as separator
 * Importance: medium
 * Default: null
 
-``filters.json_cast``
+``value.filters.json_cast``
 This filter casts nested fields to json string, avoiding parsing recursively as kafka connect-schema. The json-cast
 filter supports nested fields. To provide multiple fields use `;` as separator
 (e.g. `customer;order.qty;order.price`).
@@ -278,3 +285,17 @@ in order to be serialized correctly. To disable the field name conversion set th
 * Type: string
 * Importance: medium
 * Default: avro
+
+``key.format``
+Record's key format. Keys are built using the fields defined by `key.fields` and serialized using the provided format. Supported formats are: `string` and `struct`.
+
+* Type: string
+* Importance: low
+* Default: `string`
+
+``key.fields``
+List of fields to be included in the key structure. Default fields are the index name, the ones provided via `incrementing.field.name` and `incrementing.secondary.field.name`. Default fields are always included. Example: `order.qty,order.price,user`.
+
+* Type: list
+* Importance: low
+* Default: null

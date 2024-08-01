@@ -42,6 +42,10 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Stream;
+import java.util.stream.Collectors;
 
 import static com.github.dariobalinzo.elastic.ElasticJsonNaming.removeKeywordSuffix;
 
@@ -53,7 +57,7 @@ public class ElasticSourceTask extends SourceTask {
     static final String POSITION_SECONDARY = "position_secondary";
 
 
-    private final OffsetSerializer offsetSerializer = new OffsetSerializer();
+    private final FieldPicker fieldPicker = new FieldPicker();
     private SchemaConverter schemaConverter;
     private StructConverter structConverter;
 
@@ -67,6 +71,8 @@ public class ElasticSourceTask extends SourceTask {
     private CursorField cursorField;
     private String secondaryCursorSearchField;
     private CursorField secondaryCursorField;
+    private List<String> keyFields;
+    private String keyFormat;
     private int pollingMs;
     private final Map<String, Cursor> lastCursor = new HashMap<>();
     private final Map<String, Integer> sent = new HashMap<>();
@@ -100,6 +106,8 @@ public class ElasticSourceTask extends SourceTask {
         cursorField = new CursorField(cursorSearchField);
         secondaryCursorSearchField = config.getString(ElasticSourceConnectorConfig.SECONDARY_INCREMENTING_FIELD_NAME_CONFIG);
         secondaryCursorField = secondaryCursorSearchField == null ? null : new CursorField(secondaryCursorSearchField);
+        keyFormat = config.getString(ElasticSourceTaskConfig.KEY_FORMAT_CONFIG);
+        keyFields = Optional.ofNullable(config.getList(ElasticSourceTaskConfig.KEY_FIELDS_CONFIG)).orElse(Collections.emptyList());
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
 
         initConnectorFilters();
@@ -108,21 +116,21 @@ public class ElasticSourceTask extends SourceTask {
     }
 
     private void initConnectorFilters() {
-        String whiteFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_WHITELIST_CONFIG);
+        String whiteFilters = config.getString(ElasticSourceConnectorConfig.VALUE_FILTERS_WHITELIST_CONFIG);
         if (whiteFilters != null) {
             String[] whiteFiltersArray = whiteFilters.split(";");
             Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(whiteFiltersArray));
             documentFilters.add(new WhitelistFilter(whiteFiltersSet));
         }
 
-        String blackFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_BLACKLIST_CONFIG);
+        String blackFilters = config.getString(ElasticSourceConnectorConfig.VALUE_FILTERS_BLACKLIST_CONFIG);
         if (blackFilters != null) {
             String[] blackFiltersArray = blackFilters.split(";");
             Set<String> blackFiltersSet = new HashSet<>(Arrays.asList(blackFiltersArray));
             documentFilters.add(new BlacklistFilter(blackFiltersSet));
         }
 
-        String jsonCastFilters = config.getString(ElasticSourceConnectorConfig.FIELDS_JSON_CAST_CONFIG);
+        String jsonCastFilters = config.getString(ElasticSourceConnectorConfig.VALUE_FILTERS_JSON_CAST_CONFIG);
         if (jsonCastFilters != null) {
             String[] jsonCastFiltersArray = jsonCastFilters.split(";");
             Set<String> whiteFiltersSet = new HashSet<>(Arrays.asList(jsonCastFiltersArray));
@@ -254,18 +262,45 @@ public class ElasticSourceTask extends SourceTask {
         String index = pageResult.getIndex();
         for (Map<String, Object> elasticDocument : pageResult.getDocuments()) {
             Map<String, String> sourcePartition = Collections.singletonMap(INDEX, index);
-            Map<String, String> sourceOffset = offsetSerializer.toMapOffset(
-                    cursorField,
-                    secondaryCursorField,
-                    elasticDocument
+            Map<String, String> sourceOffset = fieldPicker.pick(
+                    elasticDocument,
+                    Stream
+                        .of(cursorField, secondaryCursorField)
+                        .filter(Objects::nonNull)
+                        .collect(
+                            Collectors.toMap(
+                                cf -> cf == cursorField ? POSITION : POSITION_SECONDARY,
+                                Function.identity()
+                            )
+                        )
             );
-            String key = offsetSerializer.toStringOffset(
-                    cursorField,
-                    secondaryCursorField,
-                    index,
-                    elasticDocument
+            Map<String, Object> keySkeleton = fieldPicker.pick(
+                    elasticDocument,
+                    Stream
+                        .concat(
+                            Stream
+                                .of(cursorSearchField, secondaryCursorSearchField)
+                                .filter(Objects::nonNull),
+                            keyFields.stream()
+                        )
+                        .filter(((Predicate<String>)String::isEmpty).negate())
+                        .collect(Collectors.toList())
+                        .toArray(new String[0])
             );
-
+            Schema keySchema;
+            Object key;
+            if (keyFormat == ElasticSourceTaskConfig.KEY_FORMAT_STRING) {
+                keySchema = Schema.STRING_SCHEMA;
+                key = keySkeleton
+                    .keySet()
+                    .stream()
+                    .collect(Collectors.joining("_", index + "_", ""));
+            } else {
+                keySkeleton.put("es_index", index);
+                keySchema = schemaConverter.convert(keySkeleton, index + "_key");
+                key = structConverter.convert(keySkeleton, keySchema); ;
+            }
+            
             lastCursor.put(index, pageResult.getLastCursor());
             sent.merge(index, 1, Integer::sum);
 
@@ -279,7 +314,7 @@ public class ElasticSourceTask extends SourceTask {
                     sourceOffset,
                     topic + index,
                     //KEY
-                    Schema.STRING_SCHEMA,
+                    keySchema,
                     key,
                     //VALUE
                     schema,

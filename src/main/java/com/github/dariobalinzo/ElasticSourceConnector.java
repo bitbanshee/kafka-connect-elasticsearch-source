@@ -21,6 +21,7 @@ import com.github.dariobalinzo.elastic.ElasticConnectionBuilder;
 import com.github.dariobalinzo.elastic.ElasticRepository;
 import com.github.dariobalinzo.elastic.ElasticIndexMonitorThread;
 import com.github.dariobalinzo.task.ElasticSourceTask;
+import com.github.dariobalinzo.task.ElasticSourceTaskConfig;
 import org.apache.http.Header;
 import org.apache.http.message.BasicHeader;
 import org.apache.kafka.common.config.ConfigDef;
@@ -116,7 +117,12 @@ public class ElasticSourceConnector extends SourceConnector {
         elasticRepository = new ElasticRepository(elasticConnection);
 
         if (configProperties.containsKey(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG)) {
-            indexMonitorThread = new ElasticIndexMonitorThread(context, POLL_MILISSECONDS, elasticRepository, config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG));
+            indexMonitorThread = new ElasticIndexMonitorThread(
+                context,
+                POLL_MILISSECONDS,
+                elasticRepository,
+                config.getString(ElasticSourceConnectorConfig.INDEX_PREFIX_CONFIG)
+            );
             indexMonitorThread.start();
         }
     }
@@ -156,7 +162,7 @@ public class ElasticSourceConnector extends SourceConnector {
         List<Map<String, String>> taskConfigs = new ArrayList<>(indexGrouped.size());
         for (List<String> taskIndices : indexGrouped) {
             Map<String, String> taskProps = new HashMap<>(configProperties);
-            taskProps.put(ElasticSourceConnectorConfig.INDICES_CONFIG,
+            taskProps.put(ElasticSourceTaskConfig.INDICES_CONFIG,
                     String.join(",", taskIndices));
             taskConfigs.add(taskProps);
         }

@@ -18,6 +18,7 @@ package com.github.dariobalinzo.elastic;
 
 import com.github.dariobalinzo.elastic.response.Cursor;
 import com.github.dariobalinzo.elastic.response.PageResult;
+import com.github.dariobalinzo.task.ElasticSourceTask;
 import org.elasticsearch.action.search.SearchRequest;
 import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.Request;

@@ -16,6 +16,8 @@
 
 package com.github.dariobalinzo.task;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.dariobalinzo.ElasticSourceConnectorConfig;
 import com.github.dariobalinzo.Version;
 import com.github.dariobalinzo.elastic.CursorField;
@@ -64,6 +66,7 @@ public class ElasticSourceTask extends SourceTask {
     private ElasticSourceTaskConfig config;
     private ElasticConnection es;
 
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final AtomicBoolean stopping = new AtomicBoolean(false);
     private List<String> indices;
     private String topic;
@@ -77,6 +80,8 @@ public class ElasticSourceTask extends SourceTask {
     private final Map<String, Cursor> lastCursor = new HashMap<>();
     private final Map<String, Integer> sent = new HashMap<>();
     private ElasticRepository elasticRepository;
+    private String rawFieldName;
+    private List<String> mandatoryFieldsOnError;
 
     private final List<DocumentFilter> documentFilters = new ArrayList<>();
 
@@ -109,6 +114,8 @@ public class ElasticSourceTask extends SourceTask {
         keyFormat = config.getString(ElasticSourceTaskConfig.KEY_FORMAT_CONFIG);
         keyFields = Optional.ofNullable(config.getList(ElasticSourceTaskConfig.KEY_FIELDS_CONFIG)).orElse(Collections.emptyList());
         pollingMs = Integer.parseInt(config.getString(ElasticSourceConnectorConfig.POLL_INTERVAL_MS_CONFIG));
+        rawFieldName = config.getString(ElasticSourceTaskConfig.RAW_DATA_FIELD_NAME_CONFIG);
+        mandatoryFieldsOnError = Optional.ofNullable(config.getList(ElasticSourceTaskConfig.MANDATORY_FIELDS_ON_ERROR_CONFIG)).orElse(Collections.emptyList());
 
         initConnectorFilters();
         initConnectorFieldConverter();
@@ -298,7 +305,7 @@ public class ElasticSourceTask extends SourceTask {
             } else {
                 keySkeleton.put("es_index", index);
                 keySchema = schemaConverter.convert(keySkeleton, index + "_key");
-                key = structConverter.convert(keySkeleton, keySchema); ;
+                key = structConverter.convert(keySkeleton, keySchema);
             }
             
             lastCursor.put(index, pageResult.getLastCursor());
@@ -306,8 +313,34 @@ public class ElasticSourceTask extends SourceTask {
 
             documentFilters.forEach(jsonFilter -> jsonFilter.filter(elasticDocument));
 
-            Schema schema = schemaConverter.convert(elasticDocument, index);
-            Struct struct = structConverter.convert(elasticDocument, schema);
+            Schema schema;
+            Struct struct;
+            try {
+                schema = schemaConverter.convert(elasticDocument, index);
+                struct = structConverter.convert(elasticDocument, schema);
+            } catch(Exception e) {
+                logger.error("Could not serialize document in Kafka Connect format. " + 
+                    "Raw value of document will be placed into field {} as string.", rawFieldName, e);
+                Map<String, Object> skeleton = fieldPicker.pick(
+                    elasticDocument,
+                    mandatoryFieldsOnError
+                        .stream()
+                        .filter(((Predicate<String>)String::isEmpty).negate())
+                        .collect(Collectors.toList())
+                        .toArray(new String[0])
+                );
+                try {
+                    skeleton.put(rawFieldName, objectMapper.writeValueAsString(elasticDocument));
+                }
+                // this should not happen
+                catch (JsonProcessingException jsonError) {
+                    logger.error("Could not serialize document as JSON. " +
+                        "Raw value of document will be placed into field {} as Java map.", rawFieldName, jsonError);
+                    skeleton.put(rawFieldName, elasticDocument.toString());
+                }
+                schema = schemaConverter.convert(skeleton, index);
+                struct = structConverter.convert(skeleton, schema);
+            }
 
             SourceRecord sourceRecord = new SourceRecord(
                     sourcePartition,

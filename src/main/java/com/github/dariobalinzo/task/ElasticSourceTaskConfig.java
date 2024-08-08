@@ -46,7 +46,7 @@ public class ElasticSourceTaskConfig extends ElasticSourceConnectorConfig {
     private static final ConfigDef.Importance KEY_FIELDS_IMPORTANCE = ConfigDef.Importance.LOW;
 
     public static final String KEY_FORMAT_CONFIG = "key.format";
-    public static final ConfigDef.Type KEY_FORMAT_TYPE =ConfigDef.Type.STRING;
+    public static final ConfigDef.Type KEY_FORMAT_TYPE = ConfigDef.Type.STRING;
     public static final String KEY_FORMAT_STRING = "string";
     public static final String KEY_FORMAT_STRUCT = "struct";
     public static final ConfigDef.Validator KEY_FORMAT_VALIDATOR = ConfigDef.ValidString.in(KEY_FORMAT_STRING, KEY_FORMAT_STRUCT);
@@ -56,6 +56,23 @@ public class ElasticSourceTaskConfig extends ElasticSourceConnectorConfig {
     private static final String KEY_FORMAT_DEFAULT = KEY_FORMAT_STRING;
     private static final String KEY_FORMAT_DISPLAY = "Record's key format";
     private static final ConfigDef.Importance KEY_FORMAT_IMPORTANCE = ConfigDef.Importance.LOW;
+
+    public static final String RAW_DATA_FIELD_NAME_CONFIG = "value.onerror.rawdata.field";
+    public static final ConfigDef.Type RAW_DATA_FIELD_NAME_TYPE = ConfigDef.Type.STRING;
+    private static final String RAW_DATA_FIELD_NAME_DEFAULT = "raw";
+    private static final String RAW_DATA_FIELD_NAME_DOC = "Field name to store the data raw value, as a string, in case " +
+        "any conversion error occurs.";
+    private static final String RAW_DATA_FIELD_NAME_DISPLAY = "Field name to store the data raw value";
+    private static final ConfigDef.Importance RAW_DATA_FIELD_NAME_IMPORTANCE = ConfigDef.Importance.LOW;
+
+    public static final String MANDATORY_FIELDS_ON_ERROR_CONFIG = "value.onerror.fields";
+    public static final ConfigDef.Type MANDATORY_FIELDS_ON_ERROR_TYPE = ConfigDef.Type.LIST;
+    private static final String MANDATORY_FIELDS_ON_ERROR_DEFAULT = "raw";
+    private static final String MANDATORY_FIELDS_ON_ERROR_DOC = "List of fields to be included to the value structure " +
+        "alongside '" + RAW_DATA_FIELD_NAME_CONFIG + "' in case of serialization errors. Example: 'order.qty,order.price,user.name'";
+    private static final String MANDATORY_FIELDS_ON_ERROR_DISPLAY = "List of fields to be included in case of errors";
+    private static final ConfigDef.Importance MANDATORY_FIELDS_ON_ERROR_IMPORTANCE = ConfigDef.Importance.HIGH;
+
 
     static ConfigDef config = baseConfigDef()
             .define(
@@ -85,6 +102,26 @@ public class ElasticSourceTaskConfig extends ElasticSourceConnectorConfig {
                 ConfigDef.Width.MEDIUM,
                 KEY_FIELDS_DISPLAY,
                 Stream.of(KEY_FORMAT_CONFIG).collect(Collectors.toList())
+            ).define(
+                RAW_DATA_FIELD_NAME_CONFIG,
+                RAW_DATA_FIELD_NAME_TYPE,
+                RAW_DATA_FIELD_NAME_DEFAULT,
+                RAW_DATA_FIELD_NAME_IMPORTANCE,
+                RAW_DATA_FIELD_NAME_DOC,
+                TASK_GROUP,
+                3,
+                ConfigDef.Width.SHORT,
+                RAW_DATA_FIELD_NAME_DISPLAY
+            ).define(
+                MANDATORY_FIELDS_ON_ERROR_CONFIG,
+                MANDATORY_FIELDS_ON_ERROR_TYPE,
+                MANDATORY_FIELDS_ON_ERROR_DEFAULT,
+                MANDATORY_FIELDS_ON_ERROR_IMPORTANCE,
+                MANDATORY_FIELDS_ON_ERROR_DOC,
+                TASK_GROUP,
+                4,
+                ConfigDef.Width.LONG,
+                MANDATORY_FIELDS_ON_ERROR_DISPLAY
             );
 
     public ElasticSourceTaskConfig(Map<String, String> props) {

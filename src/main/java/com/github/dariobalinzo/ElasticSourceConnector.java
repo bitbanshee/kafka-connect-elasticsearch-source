@@ -47,7 +47,7 @@ public class ElasticSourceConnector extends SourceConnector {
 
     @Override
     public String version() {
-        return Version.VERSION;
+        return Version.version();
     }
 
     @Override
